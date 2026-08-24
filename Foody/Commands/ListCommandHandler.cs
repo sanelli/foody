@@ -20,4 +20,14 @@ internal static class ListCommandHandler
         await Console.Out.WriteAsync(FoodyService.ListMealTypes()).ConfigureAwait(false);
         return 0;
     }
+
+    /// <summary>
+    /// Prints the available schema kind identifiers.
+    /// </summary>
+    /// <returns>Process exit code (<c>0</c> on success).</returns>
+    public static async Task<int> HandleSchemaAsync()
+    {
+        await Console.Out.WriteAsync(FoodyService.ListSchemaKinds()).ConfigureAwait(false);
+        return 0;
+    }
 }

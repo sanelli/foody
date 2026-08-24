@@ -13,16 +13,22 @@ using Foody.Lib.Internal;
 namespace Foody.Lib;
 
 /// <summary>
-/// Minimal client for Google Health API nutrition-log create.
+/// Minimal client for Google Health API nutrition-log create and import.
 /// Auth/token refresh is intentionally stubbed for scaffolding.
 /// </summary>
 internal sealed class GoogleHealthClient : IAsyncDisposable
 {
     /// <summary>
-    /// Endpoint used to create nutrition-log data points.
+    /// Endpoint used to create a single nutrition-log data point.
     /// </summary>
     public const string NutritionLogEndpoint =
         "https://health.googleapis.com/v4/users/me/dataTypes/nutrition-log/dataPoints";
+
+    /// <summary>
+    /// Endpoint used to import a batch of nutrition-log data points.
+    /// </summary>
+    public const string NutritionLogImportEndpoint =
+        "https://health.googleapis.com/v4/users/me/dataTypes/nutrition-log/dataPoints:import";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -52,36 +58,45 @@ internal sealed class GoogleHealthClient : IAsyncDisposable
     /// <param name="intake">Local intake payload.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Raw JSON response body from Google Health API.</returns>
-    public async Task<string> LogNutritionAsync(
+    public Task<string> LogNutritionAsync(
         FoodIntake intake,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(intake);
-
-        if (string.IsNullOrWhiteSpace(this.options.AccessToken))
-        {
-            throw new InvalidOperationException(
-                "Missing FOODY_GOOGLE_ACCESS_TOKEN. Google Health API calls require a user OAuth access token " +
-                $"with scope {GoogleHealthOptions.NutritionWriteOnlyScope}. " +
-                "Client ID/secret and refresh token are also needed to obtain/refresh tokens (not configured yet).");
-        }
+        this.EnsureAccessToken();
 
         NutritionLogDataPointRequest requestBody = MapToApiRequest(intake);
+        return this.SendJsonAsync(HttpMethod.Post, NutritionLogEndpoint, requestBody, cancellationToken);
+    }
 
-        using HttpRequestMessage request = new(HttpMethod.Post, NutritionLogEndpoint);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.options.AccessToken);
-        request.Content = JsonContent.Create(requestBody, options: JsonOptions);
+    /// <summary>
+    /// Imports a batch of nutrition-log data points.
+    /// </summary>
+    /// <param name="intakes">Local intake payloads.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Raw JSON response body from Google Health API.</returns>
+    public Task<string> ImportNutritionAsync(
+        IReadOnlyList<FoodIntake> intakes,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intakes);
+        this.EnsureAccessToken();
 
-        using HttpResponseMessage response = await this.http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-
-        if (!response.IsSuccessStatusCode)
+        List<NutritionLogDataPointRequest> dataPoints = new(intakes.Count);
+        foreach (FoodIntake intake in intakes)
         {
-            throw new HttpRequestException(
-                $"Google Health API returned {(int)response.StatusCode} {response.ReasonPhrase}: {responseBody}");
+            dataPoints.Add(MapToApiRequest(intake));
         }
 
-        return responseBody;
+        ImportDataPointsRequest requestBody = new()
+        {
+            InlineSource = new ImportInlineSource
+            {
+                DataPoints = dataPoints,
+            },
+        };
+
+        return this.SendJsonAsync(HttpMethod.Post, NutritionLogImportEndpoint, requestBody, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -96,10 +111,10 @@ internal sealed class GoogleHealthClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Maps a <see cref="FoodIntake"/> to the Google Health API request body.
+    /// Maps a <see cref="FoodIntake"/> to the Google Health API data point body.
     /// </summary>
     /// <param name="intake">Local intake payload.</param>
-    /// <returns>API request body.</returns>
+    /// <returns>API data point body.</returns>
     internal static NutritionLogDataPointRequest MapToApiRequest(FoodIntake intake)
     {
         DateTimeOffset start = intake.StartTime ?? DateTimeOffset.UtcNow;
@@ -129,5 +144,38 @@ internal sealed class GoogleHealthClient : IAsyncDisposable
                     : null,
             },
         };
+    }
+
+    private void EnsureAccessToken()
+    {
+        if (string.IsNullOrWhiteSpace(this.options.AccessToken))
+        {
+            throw new InvalidOperationException(
+                "Missing FOODY_GOOGLE_ACCESS_TOKEN. Google Health API calls require a user OAuth access token " +
+                $"with scope {GoogleHealthOptions.NutritionWriteOnlyScope}. " +
+                "Client ID/secret and refresh token are also needed to obtain/refresh tokens (not configured yet).");
+        }
+    }
+
+    private async Task<string> SendJsonAsync<T>(
+        HttpMethod method,
+        string url,
+        T body,
+        CancellationToken cancellationToken)
+    {
+        using HttpRequestMessage request = new(method, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.options.AccessToken);
+        request.Content = JsonContent.Create(body, options: JsonOptions);
+
+        using HttpResponseMessage response = await this.http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Google Health API returned {(int)response.StatusCode} {response.ReasonPhrase}: {responseBody}");
+        }
+
+        return responseBody;
     }
 }

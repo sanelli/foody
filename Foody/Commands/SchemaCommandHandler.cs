@@ -12,12 +12,21 @@ namespace Foody.Commands;
 internal static class SchemaCommandHandler
 {
     /// <summary>
-    /// Prints the JSON Schema for intake documents to the console.
+    /// Prints the JSON Schema for the selected kind to the console.
     /// </summary>
+    /// <param name="kind">Schema kind (<c>intake</c> or <c>bulk-intake</c>).</param>
     /// <returns>Process exit code (<c>0</c> on success).</returns>
-    public static async Task<int> HandleAsync()
+    public static async Task<int> HandleAsync(string kind)
     {
-        await Console.Out.WriteAsync(FoodyService.GetSchemaJson()).ConfigureAwait(false);
-        return 0;
+        try
+        {
+            await Console.Out.WriteAsync(FoodyService.GetSchemaJson(kind)).ConfigureAwait(false);
+            return 0;
+        }
+        catch (ArgumentException ex)
+        {
+            await Console.Error.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return 1;
+        }
     }
 }

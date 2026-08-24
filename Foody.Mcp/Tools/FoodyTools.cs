@@ -27,10 +27,27 @@ internal static class FoodyTools
     [Description("Parse intake JSON and log it to Google Health API.")]
     public static Task<string> IntakeAsync(
         FoodyService service,
-        [Description("Intake JSON document matching the Foody schema.")] string json,
+        [Description("Intake JSON document matching the Foody intake schema.")] string json,
         CancellationToken cancellationToken)
     {
         return service.LogIntakeAsync(json, cancellationToken);
+    }
+
+    /// <summary>
+    /// Imports a JSON array of intake objects via Google Health API.
+    /// </summary>
+    /// <param name="service">Foody service.</param>
+    /// <param name="json">JSON array of intake documents (max 10000).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Google Health API response JSON.</returns>
+    [McpServerTool(Name = "bulk_intake")]
+    [Description("Import multiple intake JSON objects via Google Health API (JSON array, max 10000 items).")]
+    public static Task<string> BulkIntakeAsync(
+        FoodyService service,
+        [Description("JSON array of intake documents matching the Foody bulk-intake schema.")] string json,
+        CancellationToken cancellationToken)
+    {
+        return service.LogBulkIntakeAsync(json, cancellationToken);
     }
 
     /// <summary>
@@ -45,14 +62,16 @@ internal static class FoodyTools
     }
 
     /// <summary>
-    /// Returns the JSON Schema for intake documents.
+    /// Returns the JSON Schema for the selected kind.
     /// </summary>
+    /// <param name="kind">Schema kind: intake or bulk-intake.</param>
     /// <returns>JSON Schema text.</returns>
     [McpServerTool(Name = "schema")]
-    [Description("Return the JSON Schema for intake documents accepted by intake.")]
-    public static string Schema()
+    [Description("Return the JSON Schema for intake or bulk-intake payloads.")]
+    public static string Schema(
+        [Description("Schema kind: 'intake' or 'bulk-intake'.")] string kind)
     {
-        return FoodyService.GetSchemaJson();
+        return FoodyService.GetSchemaJson(kind);
     }
 
     /// <summary>
@@ -64,6 +83,17 @@ internal static class FoodyTools
     public static string ListMealType()
     {
         return FoodyService.ListMealTypes();
+    }
+
+    /// <summary>
+    /// Lists available schema kinds.
+    /// </summary>
+    /// <returns>Schema kinds, one per line.</returns>
+    [McpServerTool(Name = "list_schema")]
+    [Description("List available schema kinds (intake, bulk-intake).")]
+    public static string ListSchema()
+    {
+        return FoodyService.ListSchemaKinds();
     }
 
     /// <summary>

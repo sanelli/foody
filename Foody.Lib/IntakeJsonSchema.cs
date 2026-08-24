@@ -2,13 +2,14 @@
 // Copyright (c) Stefano Anelli. All rights reserved.
 // </copyright>
 
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Foody.Lib;
 
 /// <summary>
-/// JSON Schema for the intake document accepted by Foody.
+/// JSON Schema documents accepted by Foody commands.
 /// </summary>
 internal static class IntakeJsonSchema
 {
@@ -18,10 +19,31 @@ internal static class IntakeJsonSchema
     };
 
     /// <summary>
-    /// Builds a pretty-printed JSON Schema document for intake payloads.
+    /// Builds a pretty-printed JSON Schema for the given schema kind.
     /// </summary>
+    /// <param name="kind">Schema kind (<see cref="SchemaKind.Intake"/> or <see cref="SchemaKind.BulkIntake"/>).</param>
     /// <returns>JSON Schema text.</returns>
-    public static string Create()
+    public static string Create(string kind)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(kind);
+
+        string normalized = kind.Trim();
+        if (string.Equals(normalized, SchemaKind.Intake, StringComparison.OrdinalIgnoreCase))
+        {
+            return CreateIntakeObjectSchema().ToJsonString(WriteOptions);
+        }
+
+        if (string.Equals(normalized, SchemaKind.BulkIntake, StringComparison.OrdinalIgnoreCase))
+        {
+            return CreateBulkIntakeSchema().ToJsonString(WriteOptions);
+        }
+
+        throw new ArgumentException(
+            $"Unknown schema kind '{kind}'. Supported values: {string.Join(", ", SchemaKind.Values)}.",
+            nameof(kind));
+    }
+
+    private static JsonObject CreateIntakeObjectSchema()
     {
         JsonArray mealTypeEnum = new();
         foreach (string mealType in MealTypes.Values)
@@ -29,7 +51,7 @@ internal static class IntakeJsonSchema
             mealTypeEnum.Add(mealType);
         }
 
-        JsonObject schema = new()
+        return new JsonObject
         {
             ["$schema"] = "https://json-schema.org/draft/2020-12/schema",
             ["$id"] = "https://foody.local/schemas/intake.json",
@@ -90,7 +112,27 @@ internal static class IntakeJsonSchema
                 },
             },
         };
+    }
 
-        return schema.ToJsonString(WriteOptions);
+    private static JsonObject CreateBulkIntakeSchema()
+    {
+        JsonObject itemSchema = CreateIntakeObjectSchema();
+        _ = itemSchema.Remove("$schema");
+        _ = itemSchema.Remove("$id");
+        itemSchema["title"] = "FoodyIntakeItem";
+        itemSchema["description"] = "One food intake payload inside a bulk-intake array.";
+
+        return new JsonObject
+        {
+            ["$schema"] = "https://json-schema.org/draft/2020-12/schema",
+            ["$id"] = "https://foody.local/schemas/bulk-intake.json",
+            ["title"] = "FoodyBulkIntake",
+            ["description"] =
+                $"JSON array of intake payloads accepted by foody bulk-intake (1 to {BulkIntakeLimits.MaxCount.ToString(CultureInfo.InvariantCulture)} items).",
+            ["type"] = "array",
+            ["minItems"] = 1,
+            ["maxItems"] = BulkIntakeLimits.MaxCount,
+            ["items"] = itemSchema,
+        };
     }
 }

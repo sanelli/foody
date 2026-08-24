@@ -29,9 +29,12 @@ Analyzers (all projects): StyleCop.Analyzers.Unstable, SonarAnalyzer.CSharp, Com
 
 ```bash
 dotnet run --project Foody/Foody.csproj -- intake Foody/Samples/sample-intake.json
+dotnet run --project Foody/Foody.csproj -- bulk-intake Foody/Samples/sample-bulk-intake.json
 dotnet run --project Foody/Foody.csproj -- sample
-dotnet run --project Foody/Foody.csproj -- schema
+dotnet run --project Foody/Foody.csproj -- schema intake
+dotnet run --project Foody/Foody.csproj -- schema bulk-intake
 dotnet run --project Foody/Foody.csproj -- list mealtype
+dotnet run --project Foody/Foody.csproj -- list schema
 dotnet run --project Foody/Foody.csproj -- help
 ```
 
@@ -43,7 +46,7 @@ After publish, the assembly name is `foody`.
 dotnet run --project Foody.Mcp/Foody.Mcp.csproj
 ```
 
-Tools: `intake`, `sample`, `schema`, `list_mealtype`, `help`.
+Tools: `intake`, `bulk_intake`, `sample`, `schema`, `list_mealtype`, `list_schema`, `help`.
 
 Example Cursor MCP config:
 
@@ -82,7 +85,8 @@ foody sample
 | Item | Value |
 |------|--------|
 | API | Google Health API v4 |
-| Endpoint | `POST https://health.googleapis.com/v4/users/me/dataTypes/nutrition-log/dataPoints` |
+| Endpoint (single) | `POST .../nutrition-log/dataPoints` |
+| Endpoint (bulk) | `POST .../nutrition-log/dataPoints:import` (max 10000) |
 | Scope | `https://www.googleapis.com/auth/googlehealth.nutrition.writeonly` |
 
 ### Credentials (not configured yet)

@@ -2,6 +2,7 @@
 // Copyright (c) Stefano Anelli. All rights reserved.
 // </copyright>
 
+using System.Globalization;
 using System.Text.Json;
 
 using Foody.Lib.Internal;
@@ -13,6 +14,12 @@ namespace Foody.Lib;
 /// </summary>
 public sealed class FoodyService : IAsyncDisposable
 {
+    /// <summary>
+    /// Maximum number of intake items accepted by <see cref="LogBulkIntakeAsync"/>.
+    /// Matches the Google Health API import limit.
+    /// </summary>
+    public const int MaxBulkIntakeCount = BulkIntakeLimits.MaxCount;
+
     private static readonly JsonSerializerOptions ParseOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -42,11 +49,13 @@ public sealed class FoodyService : IAsyncDisposable
             Foody — log food intake to Google Health API.
 
             Operations:
-              intake <json>     Parse intake JSON and log it to Google Health API
-              sample            Return a sample intake JSON document
-              schema            Return the JSON Schema for intake documents
-              list mealtype     List possible meal type values
-              help              Show this help
+              intake <json>              Parse intake JSON and log it to Google Health API
+              bulk-intake <json-array>   Import multiple intake JSON objects (max 10000)
+              sample                     Return a sample intake JSON document
+              schema intake|bulk-intake  Return the JSON Schema for the selected payload
+              list mealtype              List possible meal type values
+              list schema                List available schema kinds
+              help                       Show this help
             """.TrimEnd() + "\n";
     }
 
@@ -60,12 +69,13 @@ public sealed class FoodyService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Returns the JSON Schema for intake documents.
+    /// Returns the JSON Schema for the given kind.
     /// </summary>
+    /// <param name="kind">Schema kind (<see cref="SchemaKind.Intake"/> or <see cref="SchemaKind.BulkIntake"/>).</param>
     /// <returns>JSON Schema text.</returns>
-    public static string GetSchemaJson()
+    public static string GetSchemaJson(string kind)
     {
-        return IntakeJsonSchema.Create().TrimEnd() + "\n";
+        return IntakeJsonSchema.Create(kind).TrimEnd() + "\n";
     }
 
     /// <summary>
@@ -78,6 +88,15 @@ public sealed class FoodyService : IAsyncDisposable
     }
 
     /// <summary>
+    /// Returns available schema kind identifiers, one per line.
+    /// </summary>
+    /// <returns>Schema kind list text.</returns>
+    public static string ListSchemaKinds()
+    {
+        return string.Join("\n", SchemaKind.Values) + "\n";
+    }
+
+    /// <summary>
     /// Parses intake JSON text and logs it to Google Health API.
     /// </summary>
     /// <param name="intakeJson">Intake JSON document.</param>
@@ -87,28 +106,79 @@ public sealed class FoodyService : IAsyncDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intakeJson);
 
-        FoodIntake intake;
+        FoodIntake intake = ParseIntakeObject(intakeJson);
+        ValidateIntake(intake, index: null);
+        return await this.client.LogNutritionAsync(intake, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Parses a JSON array of intake objects and imports them via Google Health API.
+    /// </summary>
+    /// <param name="bulkIntakeJson">JSON array of intake documents.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Raw JSON response body from Google Health API.</returns>
+    public async Task<string> LogBulkIntakeAsync(string bulkIntakeJson, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bulkIntakeJson);
+
+        List<FoodIntake> intakes;
         try
         {
-            intake = JsonSerializer.Deserialize<FoodIntake>(intakeJson, ParseOptions)
-                     ?? throw new InvalidOperationException("JSON root must be an object.");
+            intakes = JsonSerializer.Deserialize<List<FoodIntake>>(bulkIntakeJson, ParseOptions)
+                      ?? throw new InvalidOperationException("JSON root must be an array.");
         }
         catch (JsonException ex)
         {
-            throw new InvalidOperationException($"Failed to parse intake JSON: {ex.Message}", ex);
+            throw new InvalidOperationException($"Failed to parse bulk intake JSON: {ex.Message}", ex);
         }
 
-        if (string.IsNullOrWhiteSpace(intake.FoodDisplayName))
+        if (intakes.Count == 0)
         {
-            throw new InvalidOperationException("Intake JSON must include a non-empty 'foodDisplayName'.");
+            throw new InvalidOperationException("Bulk intake JSON array must contain at least one item.");
         }
 
-        return await this.client.LogNutritionAsync(intake, cancellationToken).ConfigureAwait(false);
+        if (intakes.Count > MaxBulkIntakeCount)
+        {
+            throw new InvalidOperationException(
+                $"Bulk intake exceeds the maximum of {MaxBulkIntakeCount.ToString(CultureInfo.InvariantCulture)} items " +
+                $"(received {intakes.Count.ToString(CultureInfo.InvariantCulture)}).");
+        }
+
+        for (int i = 0; i < intakes.Count; i++)
+        {
+            ValidateIntake(intakes[i], i);
+        }
+
+        return await this.client.ImportNutritionAsync(intakes, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
         return this.client.DisposeAsync();
+    }
+
+    private static FoodIntake ParseIntakeObject(string intakeJson)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<FoodIntake>(intakeJson, ParseOptions)
+                   ?? throw new InvalidOperationException("JSON root must be an object.");
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"Failed to parse intake JSON: {ex.Message}", ex);
+        }
+    }
+
+    private static void ValidateIntake(FoodIntake intake, int? index)
+    {
+        if (string.IsNullOrWhiteSpace(intake.FoodDisplayName))
+        {
+            string prefix = index is { } i
+                ? $"Bulk intake item[{i.ToString(CultureInfo.InvariantCulture)}] "
+                : "Intake JSON ";
+            throw new InvalidOperationException(prefix + "must include a non-empty 'foodDisplayName'.");
+        }
     }
 }

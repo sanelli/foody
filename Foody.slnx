@@ -2,4 +2,5 @@
   <Project Path="Foody.Lib/Foody.Lib.csproj" />
   <Project Path="Foody/Foody.csproj" />
   <Project Path="Foody.Mcp/Foody.Mcp.csproj" />
+  <Project Path="Foody.Gemini/Foody.Gemini.csproj" />
 </Solution>

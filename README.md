@@ -10,6 +10,7 @@ C# tooling to log food intake to the
 | `Foody.Lib` | String-oriented core (no file/console I/O) |
 | `Foody` | Console CLI (`foody`) |
 | `Foody.Mcp` | MCP server exposing the same operations over stdio |
+| `Foody.Gemini` | Converts a markdown food diary (+ images) via Gemini into bulk intake (`foody-gemini`) |
 
 Shared settings: root `.editorconfig`, `Directory.Build.props` (warnings as errors, analyzers), `stylecop.json`.
 
@@ -39,6 +40,22 @@ dotnet run --project Foody/Foody.csproj -- help
 ```
 
 After publish, the assembly name is `foody`.
+
+## Gemini diary importer
+
+```bash
+dotnet run --project Foody.Gemini/Foody.Gemini.csproj -- path/to/diary.md
+```
+
+`foody-gemini` reads the markdown file, resolves image references in the same folder, compresses each image to under 250 KB, asks Gemini (Google AI Studio API key) for Foody `bulk-intake` JSON only, extracts the JSON array from the response, then uploads it with `Foody.Lib`.
+
+Configure `Foody.Gemini/appsettings.json` (and optional `appsettings.Local.json`):
+
+| Setting | Purpose |
+|---------|---------|
+| `Gemini:ApiKey` | API key from [Google AI Studio](https://aistudio.google.com/) |
+| `Gemini:Model` | Gemini model id (default `gemini-2.5-flash`) |
+| `GoogleHealth:*` | Same Google Health credentials as the other hosts |
 
 ## MCP server
 
@@ -98,6 +115,7 @@ Each host has a checked-in `appsettings.json`:
 
 - `Foody/appsettings.json`
 - `Foody.Mcp/appsettings.json`
+- `Foody.Gemini/appsettings.json`
 
 Optional local overrides (gitignored): `appsettings.Local.json` next to the host `appsettings.json`. Values in Local override the base file.
 

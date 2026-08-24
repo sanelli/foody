@@ -7,9 +7,10 @@ obj/
 *.DotSettings.user
 
 ## Secrets / local config
+appsettings.Local.json
+**/appsettings.Local.json
 .env
 .env.*
-!.env.example
 credentials.json
 client_secret*.json
 **/secrets/

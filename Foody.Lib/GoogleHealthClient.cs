@@ -151,9 +151,9 @@ internal sealed class GoogleHealthClient : IAsyncDisposable
         if (string.IsNullOrWhiteSpace(this.options.AccessToken))
         {
             throw new InvalidOperationException(
-                "Missing FOODY_GOOGLE_ACCESS_TOKEN. Google Health API calls require a user OAuth access token " +
+                "Missing GoogleHealth:AccessToken in configuration. Google Health API calls require a user OAuth access token " +
                 $"with scope {GoogleHealthOptions.NutritionWriteOnlyScope}. " +
-                "Client ID/secret and refresh token are also needed to obtain/refresh tokens (not configured yet).");
+                "Set values in appsettings.json or appsettings.Local.json (ClientId, ClientSecret, AccessToken, RefreshToken).");
         }
     }
 

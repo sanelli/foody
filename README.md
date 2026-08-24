@@ -82,6 +82,9 @@ foody sample
 
 ## Google Health API
 
+- Docs: [Google Health API](https://developers.google.com/health)
+- Codelab: [Make your first API call](https://developers.google.com/health/codelabs/make-your-first-api-call#1)
+
 | Item | Value |
 |------|--------|
 | API | Google Health API v4 |
@@ -91,14 +94,32 @@ foody sample
 
 ### Credentials (not configured yet)
 
-Copy `.env.example` and set:
+Each host has a checked-in `appsettings.json`:
 
-| Variable | Purpose |
-|----------|---------|
-| `FOODY_GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID (Google Cloud Console) |
-| `FOODY_GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret |
-| `FOODY_GOOGLE_ACCESS_TOKEN` | Short-lived Bearer token for API calls |
-| `FOODY_GOOGLE_REFRESH_TOKEN` | Offline refresh token (`access_type=offline`) |
+- `Foody/appsettings.json`
+- `Foody.Mcp/appsettings.json`
+
+Optional local overrides (gitignored): `appsettings.Local.json` next to the host `appsettings.json`. Values in Local override the base file.
+
+| Setting | Purpose |
+|---------|---------|
+| `GoogleHealth:ClientId` | OAuth 2.0 Client ID (Google Cloud Console) |
+| `GoogleHealth:ClientSecret` | OAuth 2.0 Client Secret |
+| `GoogleHealth:AccessToken` | Short-lived Bearer token for API calls |
+| `GoogleHealth:RefreshToken` | Offline refresh token (`access_type=offline`) |
+
+Example `appsettings.Local.json`:
+
+```json
+{
+  "GoogleHealth": {
+    "ClientId": "...",
+    "ClientSecret": "...",
+    "AccessToken": "...",
+    "RefreshToken": "..."
+  }
+}
+```
 
 Enable **Google Health API** in Google Cloud, create an OAuth client, and allow the nutrition write-only scope on the Data Access page.
 

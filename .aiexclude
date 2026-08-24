@@ -1,7 +1,8 @@
 # Local secrets — never index or send to AI tools
+appsettings.Local.json
+**/appsettings.Local.json
 .env
 .env.*
-!.env.example
 
 # Credential dumps
 credentials.json

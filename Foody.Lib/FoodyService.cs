@@ -32,11 +32,12 @@ public sealed class FoodyService : IAsyncDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="FoodyService"/> class.
     /// </summary>
-    /// <param name="options">Google Health credentials; when null, reads from environment.</param>
+    /// <param name="options">Google Health credentials from host configuration.</param>
     /// <param name="httpClient">Optional HTTP client for Google Health API calls.</param>
-    public FoodyService(GoogleHealthOptions? options = null, HttpClient? httpClient = null)
+    public FoodyService(GoogleHealthOptions options, HttpClient? httpClient = null)
     {
-        this.client = new GoogleHealthClient(options ?? GoogleHealthOptions.FromEnvironment(), httpClient);
+        ArgumentNullException.ThrowIfNull(options);
+        this.client = new GoogleHealthClient(options, httpClient);
     }
 
     /// <summary>

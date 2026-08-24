@@ -38,7 +38,7 @@ internal static class IntakeCommandHandler
             return 1;
         }
 
-        FoodyService service = new();
+        FoodyService service = new(AppConfiguration.GoogleHealth);
         await using (service.ConfigureAwait(false))
         {
             try

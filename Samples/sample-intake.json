@@ -1,0 +1,10 @@
+{
+  "foodDisplayName": "Banana",
+  "mealType": "SNACK",
+  "startTime": "2026-08-24T15:00:00Z",
+  "endTime": "2026-08-24T15:05:00Z",
+  "energyKcal": 105,
+  "totalCarbohydrateGrams": 27,
+  "totalFatGrams": 0.3,
+  "totalProteinGrams": 1.3
+}

@@ -1,0 +1,9 @@
+# Local secrets — never index or send to AI tools
+.env
+.env.*
+!.env.example
+
+# Credential dumps
+credentials.json
+client_secret*.json
+**/secrets/

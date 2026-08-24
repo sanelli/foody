@@ -1,0 +1,15 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.DotSettings.user
+
+## Secrets / local config
+.env
+.env.*
+!.env.example
+credentials.json
+client_secret*.json
+**/secrets/

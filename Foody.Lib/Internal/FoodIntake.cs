@@ -5,10 +5,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
-namespace Foody.Models;
+namespace Foody.Lib.Internal;
 
 /// <summary>
-/// Local intake payload read from a JSON file passed to <c>foody intake</c>.
+/// Local intake payload parsed from intake JSON text.
 /// </summary>
 [SuppressMessage(
     "Microsoft.Performance",

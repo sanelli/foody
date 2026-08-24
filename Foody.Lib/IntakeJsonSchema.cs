@@ -5,12 +5,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using Foody.Models;
-
-namespace Foody.Commands;
+namespace Foody.Lib;
 
 /// <summary>
-/// JSON Schema for the intake document accepted by <c>foody intake</c>.
+/// JSON Schema for the intake document accepted by Foody.
 /// </summary>
 internal static class IntakeJsonSchema
 {

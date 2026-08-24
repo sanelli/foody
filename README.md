@@ -1,7 +1,17 @@
 # Foody
 
-Small C# console app that reads a food-intake JSON file and logs it to the
+C# tooling to log food intake to the
 [Google Health API](https://developers.google.com/health) (`nutrition-log` data type).
+
+## Projects
+
+| Project | Role |
+|---------|------|
+| `Foody.Lib` | String-oriented core (no file/console I/O) |
+| `Foody` | Console CLI (`foody`) |
+| `Foody.Mcp` | MCP server exposing the same operations over stdio |
+
+Shared settings: root `.editorconfig`, `Directory.Build.props` (warnings as errors, analyzers), `stylecop.json`.
 
 ## Requirements
 
@@ -13,32 +23,46 @@ Small C# console app that reads a food-intake JSON file and logs it to the
 dotnet build Foody.slnx
 ```
 
-Warnings are treated as errors. Analyzers enabled:
+Analyzers (all projects): StyleCop.Analyzers.Unstable, SonarAnalyzer.CSharp, Comment.Todo.Analyzer, `AnalysisLevel=latest-all` / `AnalysisMode=All`.
 
-- StyleCop.Analyzers.Unstable
-- SonarAnalyzer.CSharp
-- Comment.Todo.Analyzer
-- .NET analyzers at `AnalysisLevel=latest-all` / `AnalysisMode=All`
-
-## Run
+## CLI
 
 ```bash
-dotnet run --project Foody.csproj -- intake Samples/sample-intake.json
+dotnet run --project Foody/Foody.csproj -- intake Foody/Samples/sample-intake.json
+dotnet run --project Foody/Foody.csproj -- sample
+dotnet run --project Foody/Foody.csproj -- schema
+dotnet run --project Foody/Foody.csproj -- list mealtype
+dotnet run --project Foody/Foody.csproj -- help
 ```
 
-Or after publish / build, the assembly name is `foody`:
+After publish, the assembly name is `foody`.
+
+## MCP server
 
 ```bash
-foody intake path-to-the-json-file
-foody sample
-foody schema
-foody list mealtype
-foody help
+dotnet run --project Foody.Mcp/Foody.Mcp.csproj
+```
+
+Tools: `intake`, `sample`, `schema`, `list_mealtype`, `help`.
+
+Example Cursor MCP config:
+
+```json
+{
+  "mcpServers": {
+    "foody": {
+      "command": "dotnet",
+      "args": ["run", "--project", "/absolute/path/to/foody/Foody.Mcp/Foody.Mcp.csproj"]
+    }
+  }
+}
 ```
 
 ## Sample intake JSON
 
-See `Samples/sample-intake.json`, or generate one with `foody sample`:
+```bash
+foody sample
+```
 
 ```json
 {
@@ -72,7 +96,7 @@ Copy `.env.example` and set:
 | `FOODY_GOOGLE_ACCESS_TOKEN` | Short-lived Bearer token for API calls |
 | `FOODY_GOOGLE_REFRESH_TOKEN` | Offline refresh token (`access_type=offline`) |
 
-Enable **Google Health API** in Google Cloud, create an OAuth client, and allow the nutrition write-only scope on the Data Access page. Auth uses the user OAuth authorization-code flow (not service accounts alone).
+Enable **Google Health API** in Google Cloud, create an OAuth client, and allow the nutrition write-only scope on the Data Access page.
 
 ## License
 

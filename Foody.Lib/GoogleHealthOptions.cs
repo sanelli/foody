@@ -2,13 +2,13 @@
 // Copyright (c) Stefano Anelli. All rights reserved.
 // </copyright>
 
-namespace Foody.Services;
+namespace Foody.Lib;
 
 /// <summary>
 /// Credentials and settings for Google Health API.
 /// None of these are wired yet — populate via env vars or a secrets file later.
 /// </summary>
-internal sealed class GoogleHealthOptions
+public sealed class GoogleHealthOptions
 {
     /// <summary>
     /// Required OAuth scope for creating nutrition logs:

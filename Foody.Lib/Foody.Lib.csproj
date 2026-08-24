@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Foody.Lib</RootNamespace>
+    <AssemblyName>Foody.Lib</AssemblyName>
+    <Description>String-oriented Foody core for Google Health nutrition intake.</Description>
+    <!-- Project/namespace name Foody.Lib is intentional; CA1716 flags "Lib" as a VB reserved word. -->
+    <NoWarn>$(NoWarn);CA1716</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="1.76.0" />
+  </ItemGroup>
+
+</Project>

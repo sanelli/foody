@@ -2,10 +2,10 @@
 // Copyright (c) Stefano Anelli. All rights reserved.
 // </copyright>
 
-namespace Foody.Commands;
+namespace Foody.Lib;
 
 /// <summary>
-/// Canonical sample intake JSON used by <c>foody sample</c>.
+/// Canonical sample intake JSON.
 /// </summary>
 internal static class SampleIntakeJson
 {

@@ -2,7 +2,7 @@
 // Copyright (c) Stefano Anelli. All rights reserved.
 // </copyright>
 
-using Foody.Models;
+using Foody.Lib;
 
 namespace Foody.Commands;
 
@@ -17,11 +17,7 @@ internal static class ListCommandHandler
     /// <returns>Process exit code (<c>0</c> on success).</returns>
     public static async Task<int> HandleMealTypeAsync()
     {
-        foreach (string mealType in MealTypes.Values)
-        {
-            await Console.Out.WriteLineAsync(mealType).ConfigureAwait(false);
-        }
-
+        await Console.Out.WriteAsync(FoodyService.ListMealTypes()).ConfigureAwait(false);
         return 0;
     }
 }

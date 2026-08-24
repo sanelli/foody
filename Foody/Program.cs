@@ -59,20 +59,20 @@ internal static class Program
             mealTypeCommand,
         };
 
+        Command helpCommand = new("help", "Show help and usage information.");
+        helpCommand.SetAction(async (_, _) =>
+        {
+            return await HelpCommandHandler.HandleAsync().ConfigureAwait(false);
+        });
+
         RootCommand rootCommand = new("Foody — log food intake to Google Health API.")
         {
             intakeCommand,
             sampleCommand,
             schemaCommand,
             listCommand,
+            helpCommand,
         };
-
-        Command helpCommand = new("help", "Show help and usage information.");
-        helpCommand.SetAction(async (_, cancellationToken) =>
-        {
-            return await rootCommand.Parse(["--help"]).InvokeAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        });
-        rootCommand.Subcommands.Add(helpCommand);
 
         return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
     }

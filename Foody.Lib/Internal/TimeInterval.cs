@@ -4,7 +4,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Foody.Models;
+namespace Foody.Lib.Internal;
 
 /// <summary>
 /// Time interval for a nutrition log entry.

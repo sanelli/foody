@@ -2,6 +2,8 @@
 // Copyright (c) Stefano Anelli. All rights reserved.
 // </copyright>
 
+using Foody.Lib;
+
 namespace Foody.Commands;
 
 /// <summary>
@@ -15,8 +17,7 @@ internal static class SampleCommandHandler
     /// <returns>Process exit code (<c>0</c> on success).</returns>
     public static async Task<int> HandleAsync()
     {
-        string content = SampleIntakeJson.Content.TrimEnd() + Environment.NewLine;
-        await Console.Out.WriteAsync(content).ConfigureAwait(false);
+        await Console.Out.WriteAsync(FoodyService.GetSampleJson()).ConfigureAwait(false);
         return 0;
     }
 }

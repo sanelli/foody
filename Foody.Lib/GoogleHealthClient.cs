@@ -8,9 +8,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using Foody.Models;
+using Foody.Lib.Internal;
 
-namespace Foody.Services;
+namespace Foody.Lib;
 
 /// <summary>
 /// Minimal client for Google Health API nutrition-log create.

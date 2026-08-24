@@ -2,12 +2,12 @@
 // Copyright (c) Stefano Anelli. All rights reserved.
 // </copyright>
 
-namespace Foody.Models;
+namespace Foody.Lib;
 
 /// <summary>
 /// Meal type values accepted by Google Health API <c>nutrition-log</c>.
 /// </summary>
-internal static class MealTypes
+public static class MealTypes
 {
     /// <summary>
     /// Gets the meal type values that may be set on an intake payload.

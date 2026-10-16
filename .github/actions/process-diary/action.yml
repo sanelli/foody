@@ -1,0 +1,148 @@
+name: Process food diary with Foody.Gemini
+description: >
+  Builds Foody.Gemini, validates that the last commit in the consumer repo
+  touches a single folder with exactly one markdown diary, then uploads intake
+  via Gemini and Google Health. Expects the consumer repository to already be
+  checked out (e.g. actions/checkout). Secrets are passed as environment
+  variables (GoogleHealth__*, Gemini__*), not written to appsettings.
+
+inputs:
+  google_health_client_id:
+    description: GoogleHealth:ClientId (OAuth 2.0 client id)
+    required: true
+  google_health_client_secret:
+    description: GoogleHealth:ClientSecret (OAuth 2.0 client secret)
+    required: true
+  google_health_access_token:
+    description: GoogleHealth:AccessToken (Bearer token; may be empty if refresh token can mint one)
+    required: false
+    default: ""
+  google_health_refresh_token:
+    description: GoogleHealth:RefreshToken (offline refresh token)
+    required: true
+  gemini_api_key:
+    description: Gemini:ApiKey (Google AI Studio API key)
+    required: true
+  gemini_model:
+    description: Gemini:Model id
+    required: false
+    default: gemini-2.5-flash
+  foody_repository:
+    description: Git repository to clone for Foody.Gemini source
+    required: false
+    default: https://github.com/sanelli/foody.git
+  foody_ref:
+    description: Branch, tag, or commit to checkout when cloning foody
+    required: false
+    default: main
+  dotnet_version:
+    description: .NET SDK version passed to actions/setup-dotnet
+    required: false
+    default: "10.0.x"
+
+outputs:
+  diary_path:
+    description: Absolute path to the markdown diary processed
+    value: ${{ steps.resolve.outputs.diary_path }}
+  diary_folder:
+    description: Folder containing the last-commit files
+    value: ${{ steps.resolve.outputs.diary_folder }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet_version }}
+
+    - name: Resolve diary from last commit
+      id: resolve
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        $files = @(git diff-tree --no-commit-id --name-only --diff-filter=ACMR -r HEAD |
+          Where-Object { $_.Trim() -ne '' })
+        if ($files.Count -eq 0) {
+          Write-Error "Last commit has no added/changed files to process."
+        }
+
+        $diaryFolder = $null
+        foreach ($f in $files) {
+          $dir = Split-Path -Parent $f
+          if ([string]::IsNullOrEmpty($dir) -or $dir -eq '.') {
+            $dir = ''
+          }
+          if ($null -eq $diaryFolder) {
+            $diaryFolder = $dir
+          }
+          elseif ($dir -ne $diaryFolder) {
+            Write-Host "Files:"
+            $files | ForEach-Object { Write-Host "  $_" }
+            Write-Error "Last commit files must all live in the same folder."
+          }
+        }
+
+        $mdFiles = @($files | Where-Object { $_ -match '\.md$' })
+        if ($mdFiles.Count -eq 0) {
+          Write-Error "Last commit must contain exactly one markdown (.md) file."
+        }
+        if ($mdFiles.Count -ne 1) {
+          Write-Host "Found:"
+          $mdFiles | ForEach-Object { Write-Host "  $_" }
+          Write-Error "Last commit must contain exactly one markdown (.md) file."
+        }
+
+        $diaryRel = $mdFiles[0]
+        $diaryPath = Join-Path (Get-Location) $diaryRel
+        if (-not (Test-Path -LiteralPath $diaryPath -PathType Leaf)) {
+          Write-Error "Markdown diary not found on disk: $diaryPath"
+        }
+
+        "diary_folder=$diaryFolder" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "diary_path=$diaryPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        $folderLabel = if ([string]::IsNullOrEmpty($diaryFolder)) { '.' } else { $diaryFolder }
+        Write-Host "Resolved diary: $diaryPath (folder: '$folderLabel')"
+
+    - name: Clone foody
+      id: clone
+      shell: pwsh
+      env:
+        FOODY_REPOSITORY: ${{ inputs.foody_repository }}
+        FOODY_REF: ${{ inputs.foody_ref }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $foodyDir = Join-Path $env:RUNNER_TEMP 'foody-src'
+        if (Test-Path -LiteralPath $foodyDir) {
+          Remove-Item -LiteralPath $foodyDir -Recurse -Force
+        }
+        git clone $env:FOODY_REPOSITORY $foodyDir
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        git -C $foodyDir checkout $env:FOODY_REF
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        "foody_dir=$foodyDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    - name: Build Foody.Gemini
+      shell: pwsh
+      working-directory: ${{ steps.clone.outputs.foody_dir }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        dotnet build Foody.Gemini/Foody.Gemini.csproj --configuration Release
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    - name: Run Foody.Gemini
+      shell: pwsh
+      working-directory: ${{ steps.clone.outputs.foody_dir }}
+      env:
+        DIARY_PATH: ${{ steps.resolve.outputs.diary_path }}
+        GoogleHealth__ClientId: ${{ inputs.google_health_client_id }}
+        GoogleHealth__ClientSecret: ${{ inputs.google_health_client_secret }}
+        GoogleHealth__AccessToken: ${{ inputs.google_health_access_token }}
+        GoogleHealth__RefreshToken: ${{ inputs.google_health_refresh_token }}
+        Gemini__ApiKey: ${{ inputs.gemini_api_key }}
+        Gemini__Model: ${{ inputs.gemini_model }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        dotnet run --project Foody.Gemini/Foody.Gemini.csproj --configuration Release --no-build -- $env:DIARY_PATH
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

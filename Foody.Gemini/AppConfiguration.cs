@@ -9,7 +9,9 @@ using Microsoft.Extensions.Configuration;
 namespace Foody.Gemini;
 
 /// <summary>
-/// Loads Foody.Gemini host configuration from appsettings files.
+/// Loads Foody.Gemini host configuration from appsettings files and environment variables.
+/// Environment variables use the ASP.NET Core nested-key convention (e.g. <c>Gemini__ApiKey</c>,
+/// <c>GoogleHealth__RefreshToken</c>) and override JSON values.
 /// </summary>
 internal static class AppConfiguration
 {
@@ -33,6 +35,7 @@ internal static class AppConfiguration
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
             .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables()
             .Build();
     }
 

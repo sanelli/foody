@@ -54,13 +54,13 @@ internal sealed class GeminiIntakeClient
                 """
                 You are converting a personal food diary into Foody bulk-intake JSON.
 
-                Return ONLY a JSON array that validates against the schema below.
+                Return ONLY a JSON that validates against the schema below.
                 Do not include markdown fences or any explanation.
                 Infer mealType, times, energy, and macros from the diary text and images when possible.
                 Use ISO-8601 UTC timestamps ending with Z.
                 If a time is unknown, estimate reasonable start/end times for that meal on the diary day.
                 Keep foodDisplayName concise and human readable.
-                Limit the array to at most 10000 items.
+                Limit the number items to at most 10000 items.
 
                 JSON Schema:
                 """ + schema),
